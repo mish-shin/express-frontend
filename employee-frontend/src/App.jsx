@@ -2,77 +2,132 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 function App() {
-  const [employees, setEmployees] = useState([]);
+  const [puppies, setPuppies] = useState([]);
   const [form, setForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    birthdate: '',
-    salary: ''
+    name: '',
+    breed: '',
+    weight_lbs: '',
+    vaccinated: false
   });
 
+  // Load all puppies when the page loads
   useEffect(() => {
-    async function fetchEmployees() {
+    async function fetchPuppies() {
       try {
-        const res = await axios.get('http:// :4000/employees');
-        setEmployees(res.data);
+        const res = await axios.get('http://localhost:4000/puppies');
+        setPuppies(res.data);
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching puppies:', err);
       }
     }
-    fetchEmployees();
+    fetchPuppies();
   }, []);
 
+  // Handle text input & checkbox changes
   const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
+  // Add a new puppy
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:4000/employees', form);
-      const res = await axios.get('http://localhost:4000/employees');
-      setEmployees(res.data);
-      setForm({ first_name: '', last_name: '', email: '', birthdate: '', salary: '' });
+      await axios.post('http://localhost:4000/puppies', {
+        name: form.name,
+        breed: form.breed,
+        weight_lbs: form.weight_lbs ? parseFloat(form.weight_lbs) : null,
+        vaccinated: form.vaccinated
+      });
+
+      const res = await axios.get('http://localhost:4000/puppies');
+      setPuppies(res.data);
+
+      setForm({ name: '', breed: '', weight_lbs: '', vaccinated: false });
     } catch (err) {
-      console.error(err);
+      console.error('Error adding puppy:', err);
+    }
+  };
+
+  // Delete a puppy by ID
+  const handleDelete = async id => {
+    try {
+      await axios.delete(`http://localhost:4000/puppies/${id}`);
+      const res = await axios.get('http://localhost:4000/puppies');
+      setPuppies(res.data);
+    } catch (err) {
+      console.error('Error deleting puppy:', err);
     }
   };
 
   return (
     <div style={{ margin: '20px' }}>
-      <h1>Employees</h1>
+      <h1>Puppy Manager</h1>
 
+      {/* Table */}
       <table border="1" cellPadding="8">
         <thead>
           <tr>
-            <th>ID</th><th>First Name</th><th>Last Name</th><th>Email</th><th>Birthdate</th><th>Salary</th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Breed</th>
+            <th>Weight (lbs)</th>
+            <th>Vaccinated</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {employees.map(emp => (
-            <tr key={emp.employee_id}>
-              <td>{emp.employee_id}</td>
-              <td>{emp.first_name || '-'}</td>
-              <td>{emp.last_name || '-'}</td>
-              <td>{emp.email || '-'}</td>
-              <td>{emp.birthdate ? new Date(emp.birthdate).toLocaleDateString() : '-'}</td>
-              <td>{emp.salary !== null ? emp.salary.toFixed(2) : '-'}</td>
+          {puppies.map(p => (
+            <tr key={p.id}>
+              <td>{p.id}</td>
+              <td>{p.name}</td>
+              <td>{p.breed || '-'}</td>
+              <td>{p.weight_lbs || '-'}</td>
+              <td>{p.vaccinated ? 'Yes' : 'No'}</td>
+              <td>
+                <button onClick={() => handleDelete(p.id)}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-        <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="First Name" />
-        <input name="last_name" value={form.last_name} onChange={handleChange} placeholder="Last Name" />
-        <input name="email" value={form.email} onChange={handleChange} placeholder="Email" />
-        <input name="birthdate" type="date" value={form.birthdate} onChange={handleChange} placeholder="Birthdate" />
-        <input name="salary" type="number" step="0.01" value={form.salary} onChange={handleChange} placeholder="Salary" />
-        <button type="submit">Add Employee</button>
+      {/* Add Puppy Form */}
+      <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Name"
+          required
+        />
+        <input
+          name="breed"
+          value={form.breed}
+          onChange={handleChange}
+          placeholder="Breed"
+        />
+        <input
+          name="weight_lbs"
+          type="number"
+          step="0.01"
+          value={form.weight_lbs}
+          onChange={handleChange}
+          placeholder="Weight (lbs)"
+        />
+        <label style={{ marginLeft: '10px' }}>
+          <input
+            name="vaccinated"
+            type="checkbox"
+            checked={form.vaccinated}
+            onChange={handleChange}
+          />{' '}
+          Vaccinated
+        </label>
+        <button type="submit" style={{ marginLeft: '10px' }}>
+          Add Puppy
+        </button>
       </form>
-
-    
     </div>
   );
 }
